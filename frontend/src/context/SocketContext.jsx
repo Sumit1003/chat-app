@@ -20,6 +20,8 @@ export const SocketProvider = ({ children }) => {
 
     const newSocket = io(import.meta.env.VITE_API_URL || '', {
       auth: { userId: user._id },
+      withCredentials: true,
+      reconnection: true,
       transports: ['websocket'],
     });
 

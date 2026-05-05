@@ -27,7 +27,7 @@ handleSocketConnection(io);
 app.use(helmet());
 app.use(cors({
   origin: function (origin, callback) {
-    const allowed = ['http://localhost:5173', 'http://192.168.31.44:5173'];
+    const allowed = process.env.FRONTEND_URL,
     if (!origin || allowed.includes(origin)) {
       callback(null, true);
     } else {
