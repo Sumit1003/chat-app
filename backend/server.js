@@ -27,14 +27,7 @@ handleSocketConnection(io);
 app.use(helmet());
 
 app.use(cors({
-  origin: function (origin, callback) {
-    const allowedOrigins = process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [];
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: process.env.FRONTEND_URL,
   credentials: true,
 }));
 
