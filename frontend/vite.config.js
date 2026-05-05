@@ -3,17 +3,15 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  server: {
-    host: '0.0.0.0',        // ✅ allow network access
+  server: {     
     port: 5173,
-    strictPort: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'https://chat-backend-3kj7.onrender.com',
         changeOrigin: true,
       },
       '/socket.io': {
-        target: 'http://localhost:5000',
+        target: 'https://chat-backend-3kj7.onrender.com',
         ws: true,
         changeOrigin: true,
       },
