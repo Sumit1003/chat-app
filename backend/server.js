@@ -25,10 +25,11 @@ const io = initializeSocket(server);
 handleSocketConnection(io);
 
 app.use(helmet());
+
 app.use(cors({
   origin: function (origin, callback) {
-    const allowed = process.env.FRONTEND_URL,
-    if (!origin || allowed.includes(origin)) {
+    const allowedOrigins = process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [];
+    if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -36,6 +37,7 @@ app.use(cors({
   },
   credentials: true,
 }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
