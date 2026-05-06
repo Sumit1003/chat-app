@@ -4,6 +4,7 @@ import express from 'express';
 import http from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
+import compression from 'compression';   // <-- NEW
 import rateLimit from 'express-rate-limit';
 import connectDB from './config/db.js';
 import { initializeSocket } from './config/socket.js';
@@ -24,13 +25,14 @@ const server = http.createServer(app);
 const io = initializeSocket(server);
 handleSocketConnection(io);
 
-app.use(helmet());
+app.set('trust proxy', 1); // Trust first proxy (Render)
 
+app.use(helmet());
+app.use(compression()); // compress all responses
 app.use(cors({
   origin: process.env.FRONTEND_URL,
   credentials: true,
 }));
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -44,7 +46,6 @@ app.use('/api/messages', messageRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date() });
-  console.log(`[${new Date().toISOString()}] Health check endpoint accessed`);
 });
 
 app.get('/test-cloudinary', async (req, res) => {
@@ -54,8 +55,6 @@ app.get('/test-cloudinary', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
-
-  console.log(process.env.CLOUDINARY_CLOUD_NAME);
 });
 
 app.use(notFound);

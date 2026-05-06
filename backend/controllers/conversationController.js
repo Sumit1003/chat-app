@@ -6,24 +6,48 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 // @desc    Get or create conversation between two users
 export const getOrCreateConversation = asyncHandler(async (req, res) => {
   const { userId, receiverId } = req.body;
-  const currentUserId = req.user._id || req.user.id;
-  const targetUserId = userId || receiverId;
+  const currentUserId = req.user._id.toString();
+  const targetUserId = (userId || receiverId).toString();
 
   if (!targetUserId) {
     return res.status(400).json({ message: 'User ID is required' });
   }
-  if (currentUserId.toString() === targetUserId.toString()) {
+  if (currentUserId === targetUserId) {
     return res.status(400).json({ message: 'Cannot chat with yourself' });
   }
 
-  const participants = [currentUserId.toString(), targetUserId.toString()].sort();
+  // Sort participants to guarantee consistent order
+  const participants = [currentUserId, targetUserId].sort();
 
-  // Try to find existing conversation
+  // Try to find existing conversation (using sorted array)
   let conversation = await Conversation.findOne({
     participants: { $all: participants, $size: 2 },
   });
 
-  if (conversation) {
+  if (!conversation) {
+    try {
+      conversation = await Conversation.create({
+        participants,
+        userStates: participants.map(uid => ({
+          userId: uid,
+          pinned: false,
+          deleted: false,
+          lastReadAt: new Date(),
+        })),
+        lastMessageTime: new Date(),
+      });
+    } catch (error) {
+      // Duplicate key (E11000) – race condition, fetch existing conversation
+      if (error.code === 11000) {
+        conversation = await Conversation.findOne({
+          participants: { $all: participants, $size: 2 },
+        });
+        if (!conversation) throw new Error('Failed to create or retrieve conversation');
+      } else {
+        throw error;
+      }
+    }
+  } else {
     // Ensure userStates exist for both participants (migration)
     let updated = false;
     for (const uid of participants) {
@@ -38,29 +62,6 @@ export const getOrCreateConversation = asyncHandler(async (req, res) => {
       }
     }
     if (updated) await conversation.save();
-  } else {
-    // Create with duplicate key handling
-    try {
-      conversation = await Conversation.create({
-        participants,
-        userStates: participants.map(uid => ({
-          userId: uid,
-          pinned: false,
-          deleted: false,
-          lastReadAt: new Date(),
-        })),
-        lastMessageTime: new Date(),
-      });
-    } catch (error) {
-      if (error.code === 11000) {
-        conversation = await Conversation.findOne({
-          participants: { $all: participants, $size: 2 },
-        });
-        if (!conversation) throw new Error('Failed to create or retrieve conversation');
-      } else {
-        throw error;
-      }
-    }
   }
 
   const populatedConversation = await Conversation.findById(conversation._id)
