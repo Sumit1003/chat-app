@@ -1,3 +1,4 @@
+// backend/src/controllers/conversationController.js
 import Conversation from '../models/Conversation.js';
 import Message from '../models/Message.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -70,6 +71,18 @@ export const getOrCreateConversation = asyncHandler(async (req, res) => {
     .populate('lastMessage');
 
   res.json(populatedConversation);
+});
+
+// ✅ NEW: Fetch a single conversation by ID (used after page refresh)
+export const getConversationById = asyncHandler(async (req, res) => {
+  const conversation = await Conversation.findById(req.params.id)
+    .populate('participants', 'name email avatar onlineStatus lastSeen')
+    .populate('lastMessage');
+  
+  if (!conversation) {
+    return res.status(404).json({ message: 'Conversation not found' });
+  }
+  res.json(conversation);
 });
 
 // @desc    Get all conversations for current user
