@@ -15,7 +15,7 @@ const MessageBubble = ({ message, isOwn, onDelete }) => {
 
   const handleDeleteForMe = async () => {
     try {
-      await api.delete(`/messages/${message._id}`);
+      await api.delete(`/api/messages/${message._id}`);
       toast.success('Message deleted for you');
       onDelete?.(message._id);
     } catch (error) {

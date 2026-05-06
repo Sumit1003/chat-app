@@ -36,7 +36,7 @@ const MessageInput = ({ conversationId, receiverId, onSendMessage }) => {
     if (!messageText.trim() && !mediaUrl) return;
     setSending(true);
     try {
-      const { data } = await api.post('/messages', {
+      const { data } = await api.post('/api/messages', {
         conversationId,
         text: messageText,
         media: mediaUrl,
@@ -69,7 +69,7 @@ const MessageInput = ({ conversationId, receiverId, onSendMessage }) => {
     const formData = new FormData();
     formData.append('image', file);
     try {
-      const { data } = await api.post('/messages/upload', formData, {
+      const { data } = await api.post('/api/messages/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       await sendMessage('', data.url);
