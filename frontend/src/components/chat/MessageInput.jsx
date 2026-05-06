@@ -1,10 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
-import EmojiPicker from 'emoji-picker-react';
+import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { useSocket } from '../../context/SocketContext';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { FiSend, FiImage, FiSmile } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+
+const EmojiPicker = lazy(() => import('emoji-picker-react'));
 
 const MessageInput = ({ conversationId, receiverId, onSendMessage }) => {
   const [text, setText] = useState('');
@@ -17,9 +18,7 @@ const MessageInput = ({ conversationId, receiverId, onSendMessage }) => {
   const emojiButtonRef = useRef(null);
 
   useEffect(() => {
-    return () => {
-      if (typingTimeout) clearTimeout(typingTimeout);
-    };
+    return () => clearTimeout(typingTimeout);
   }, [typingTimeout]);
 
   const handleTyping = () => {
@@ -83,7 +82,6 @@ const MessageInput = ({ conversationId, receiverId, onSendMessage }) => {
     setShowEmoji(false);
   };
 
-  // Close emoji picker when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (emojiButtonRef.current && !emojiButtonRef.current.contains(event.target)) {
@@ -111,8 +109,6 @@ const MessageInput = ({ conversationId, receiverId, onSendMessage }) => {
           accept="image/*"
           className="hidden"
         />
-
-        {/* Emoji picker wrapper – button and picker are siblings */}
         <div className="relative" ref={emojiButtonRef}>
           <button
             type="button"
@@ -123,11 +119,12 @@ const MessageInput = ({ conversationId, receiverId, onSendMessage }) => {
           </button>
           {showEmoji && (
             <div className="absolute bottom-12 left-0 z-10">
-              <EmojiPicker onEmojiClick={onEmojiClick} />
+              <Suspense fallback={<div className="w-64 h-64 bg-white dark:bg-gray-800 rounded shadow" />}>
+                <EmojiPicker onEmojiClick={onEmojiClick} />
+              </Suspense>
             </div>
           )}
         </div>
-
         <input
           type="text"
           value={text}

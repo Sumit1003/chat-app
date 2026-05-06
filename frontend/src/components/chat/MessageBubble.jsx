@@ -5,7 +5,7 @@ import { FiMoreVertical, FiTrash2 } from 'react-icons/fi';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
-const MessageBubble = ({ message, isOwn, onDelete }) => {
+const MessageBubble = React.memo(({ message, isOwn, onDelete }) => {
   const [showMenu, setShowMenu] = useState(false);
   const sender = message.senderId?.name || 'Unknown';
   const text = message.text;
@@ -23,6 +23,11 @@ const MessageBubble = ({ message, isOwn, onDelete }) => {
     }
     setShowMenu(false);
   };
+
+  // Optimize image URL if from Cloudinary (add auto format & quality)
+  const optimizedMedia = media?.includes('cloudinary')
+    ? `${media}?w=400&c=limit&q=auto&f=auto`
+    : media;
 
   return (
     <motion.div
@@ -47,10 +52,10 @@ const MessageBubble = ({ message, isOwn, onDelete }) => {
               }
             `}
           >
-            {media && (
+            {optimizedMedia && (
               <div className="mb-1">
                 <img 
-                  src={media} 
+                  src={optimizedMedia} 
                   alt="media" 
                   className="max-w-full rounded-lg max-h-60 object-cover"
                   loading="lazy"
@@ -59,7 +64,6 @@ const MessageBubble = ({ message, isOwn, onDelete }) => {
             )}
             {text && <p className="whitespace-pre-wrap">{text}</p>}
           </div>
-          {/* Three-dots menu for own messages only */}
           {isOwn && (
             <div className="absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition">
               <button
@@ -95,6 +99,7 @@ const MessageBubble = ({ message, isOwn, onDelete }) => {
       </div>
     </motion.div>
   );
-};
+});
 
+MessageBubble.displayName = 'MessageBubble';
 export default MessageBubble;
