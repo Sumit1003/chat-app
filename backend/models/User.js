@@ -25,7 +25,7 @@ const userSchema = new mongoose.Schema(
     },
     avatar: {
       type: String,
-      default: 'https://ui-avatars.com/api/?background=3b82f6&color=fff&rounded=true&bold=true&size=128',
+      default: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle fill="%233b82f6" cx="50" cy="50" r="50"/%3E%3Ctext fill="%23fff" x="50" y="67" text-anchor="middle" font-size="50" font-family="Arial"%3E%3C/text%3E%3C/svg%3E',
     },
     onlineStatus: {
       type: Boolean,
