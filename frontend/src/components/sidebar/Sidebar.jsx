@@ -1,94 +1,89 @@
-// frontend/src/components/sidebar/Sidebar.jsx
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import api from '../../services/api';
-import UserItem from './UserItem';
-import { FiSettings, FiLogOut, FiRefreshCw, FiMenu, FiX } from 'react-icons/fi';
+import ConversationItem from './ConversationItem';
+import UserSearch from './UserSearch';
+import { FiSettings, FiLogOut, FiSearch, FiMenu, FiX, FiMessageCircle } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
-const Sidebar = ({ onSelectConversation }) => {
-  const [allUsers, setAllUsers] = useState([]);
+const Sidebar = ({ selectedConversation, onSelectConversation }) => {
+  const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('online');
+  const [showSearch, setShowSearch] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-
   const { user, logout } = useAuth();
   const { onlineUsers } = useSocket();
   const navigate = useNavigate();
 
-  // Handle window resize
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
-      // Close mobile sidebar automatically when resizing to desktop
       if (window.innerWidth >= 768) setIsMobileOpen(false);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const fetchAllUsers = async () => {
+  const fetchConversations = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/users');
-      setAllUsers(data);
+      const { data } = await api.get('/conversations');
+      setConversations(data);
     } catch (error) {
-      console.error('Failed to fetch users', error);
-      toast.error('Could not load users');
+      console.error('Failed to fetch conversations', error);
+      toast.error('Could not load conversations');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchAllUsers();
+    fetchConversations();
   }, []);
 
-  const handleStartConversation = async (selectedUser) => {
+  const handleDeleteConversation = async (conversationId) => {
+    if (!window.confirm('Remove this chat from your list?')) return;
     try {
-      const { data } = await api.post('/conversations', { userId: selectedUser._id });
-      onSelectConversation(data);
-      if (isMobile) setIsMobileOpen(false);
+      await api.delete(`/conversations/${conversationId}`);
+      setConversations(prev => prev.filter(conv => conv._id !== conversationId));
+      if (selectedConversation?._id === conversationId) {
+        onSelectConversation(null);
+      }
+      toast.success('Conversation removed');
     } catch (error) {
-      toast.error('Failed to start conversation');
+      toast.error('Failed to remove conversation');
     }
   };
 
-  const getFilteredUsers = () => {
-    if (activeTab === 'all') return allUsers;
-    const isOnlineTab = activeTab === 'online';
-    return allUsers.filter(u => (isOnlineTab ? onlineUsers.has(u._id) : !onlineUsers.has(u._id)));
+  const handleNewConversation = (newConversation) => {
+    setConversations(prev => [newConversation, ...prev]);
+    onSelectConversation(newConversation);
+    setShowSearch(false);
+    if (isMobile) setIsMobileOpen(false);
   };
 
-  const filteredUsers = getFilteredUsers();
-  const onlineCount = allUsers.filter(u => onlineUsers.has(u._id)).length;
-  const offlineCount = allUsers.filter(u => !onlineUsers.has(u._id)).length;
-
-  const tabs = [
-    { id: 'online', label: 'Online', count: onlineCount },
-    { id: 'offline', label: 'Offline', count: offlineCount },
-    { id: 'all', label: 'All', count: allUsers.length },
-  ];
-
   const sidebarContent = (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-800 shadow-xl">
+    <div className="flex flex-col h-full bg-white dark:bg-gray-800">
       {/* Header */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
         <div className="flex items-center gap-2">
-          <h1 className="text-xl font-semibold text-gray-800 dark:text-white">ChatApp</h1>
-          <button
-            onClick={fetchAllUsers}
-            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition"
-            title="Refresh"
-          >
-            <FiRefreshCw className="w-4 h-4 text-gray-500" />
-          </button>
+          <div className="flex items-center gap-2">
+            <FiMessageCircle className="w-6 h-6 text-blue-500" />
+            <h1 className="text-xl font-semibold text-gray-800 dark:text-white">Chats</h1>
+          </div>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => setShowSearch(!showSearch)}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition"
+            title="New chat"
+          >
+            <FiSearch className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+          </button>
           <button
             onClick={() => navigate('/settings')}
             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition"
@@ -112,68 +107,66 @@ const Sidebar = ({ onSelectConversation }) => {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-gray-200 dark:border-gray-700">
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 py-2 text-sm font-medium transition-colors relative
-              ${activeTab === tab.id
-                ? 'text-blue-600 dark:text-blue-400'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-          >
-            {tab.label} ({tab.count})
-            {activeTab === tab.id && (
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-500 rounded-full" />
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* User list */}
-      <div className="flex-1 overflow-y-auto">
-        {loading ? (
-          <div className="flex justify-center py-8">
-            <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : filteredUsers.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-gray-500 dark:text-gray-400">
-              {activeTab === 'online'
-                ? 'No online users at the moment.'
-                : activeTab === 'offline'
-                ? 'No offline users.'
-                : 'No other users found.'}
-            </p>
-          </div>
-        ) : (
-          <AnimatePresence>
-            {filteredUsers.map(userItem => (
-              <UserItem
-                key={userItem._id}
-                user={userItem}
-                onlineUsers={onlineUsers}
-                onClick={() => handleStartConversation(userItem)}
-              />
-            ))}
-          </AnimatePresence>
-        )}
-      </div>
+      {/* Content: UserSearch OR Conversation List */}
+      {showSearch ? (
+        <UserSearch
+          onConversationCreated={handleNewConversation}
+          onCancel={() => setShowSearch(false)}
+        />
+      ) : (
+        <div className="flex-1 overflow-y-auto">
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : conversations.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+              <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-3">
+                <FiMessageCircle className="w-8 h-8 text-gray-400" />
+              </div>
+              <p className="text-gray-500 dark:text-gray-400">No conversations yet.</p>
+              <button
+                onClick={() => setShowSearch(true)}
+                className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+              >
+                Start a new chat
+              </button>
+            </div>
+          ) : (
+            <AnimatePresence>
+              {conversations.map(conv => (
+                <ConversationItem
+                  key={conv._id}
+                  conversation={conv}
+                  currentUserId={user._id}
+                  onlineUsers={onlineUsers}
+                  isSelected={selectedConversation?._id === conv._id}
+                  onClick={() => onSelectConversation(conv)}
+                  onDelete={() => handleDeleteConversation(conv._id)}
+                />
+              ))}
+            </AnimatePresence>
+          )}
+        </div>
+      )}
     </div>
   );
 
-  // Desktop: always visible sidebar
+  // Desktop
   if (!isMobile) {
     return (
-      <div className="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col h-full">
+      <motion.div
+        initial={{ x: -300, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ type: 'spring', damping: 20 }}
+        className="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col h-full shadow-xl z-10"
+      >
         {sidebarContent}
-      </div>
+      </motion.div>
     );
   }
 
-  // Mobile: hamburger button + slide‑out panel
+  // Mobile
   return (
     <>
       <button
@@ -190,15 +183,15 @@ const Sidebar = ({ onSelectConversation }) => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
               onClick={() => setIsMobileOpen(false)}
             />
             <motion.div
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed top-0 left-0 w-full max-w-[80vw] sm:max-w-sm h-full bg-white dark:bg-gray-800 shadow-2xl z-50"
+              transition={{ type: 'spring', damping: 25 }}
+              className="fixed top-0 left-0 w-full max-w-[85vw] sm:max-w-sm h-full bg-white dark:bg-gray-800 shadow-2xl z-50"
             >
               {sidebarContent}
             </motion.div>
