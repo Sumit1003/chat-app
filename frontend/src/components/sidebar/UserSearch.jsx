@@ -24,7 +24,7 @@ const UserSearch = ({ onConversationCreated, onCancel }) => {
   const searchUsers = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get(`/users/search?q=${query}`);
+      const { data } = await api.get(`api/users/search?q=${query}`);
       setUsers(data);
     } catch (error) {
       toast.error('Failed to search users');
@@ -36,7 +36,7 @@ const UserSearch = ({ onConversationCreated, onCancel }) => {
   const startConversation = async (userId) => {
     setCreating(prev => ({ ...prev, [userId]: true }));
     try {
-      const { data } = await api.post('/conversations', { userId });
+      const { data } = await api.post('/api/conversations', { userId });
       onConversationCreated(data);
       toast.success('Conversation started');
     } catch (error) {
