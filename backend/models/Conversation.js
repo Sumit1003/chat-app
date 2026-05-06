@@ -26,6 +26,7 @@ const conversationSchema = new mongoose.Schema(
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
+        required: true
       },
     ],
     userStates: [userStateSchema],
@@ -48,7 +49,7 @@ const conversationSchema = new mongoose.Schema(
 );
 
 // Ensure unique conversation between two users
-conversationSchema.index({ participants: 1 }, { unique: true });
+conversationSchema.index({ participants: 1 });
 
 const Conversation = mongoose.model('Conversation', conversationSchema);
 export default Conversation;
