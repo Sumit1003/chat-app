@@ -1,4 +1,3 @@
-// backend/src/controllers/conversationController.js
 import Conversation from '../models/Conversation.js';
 import Message from '../models/Message.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -18,13 +17,12 @@ export const getOrCreateConversation = asyncHandler(async (req, res) => {
 
   const participants = [currentUserId, targetUserId].sort();
 
-  // 1️⃣ Try to find existing conversation
   let conversation = await Conversation.findOne({
     participants: { $all: participants, $size: 2 },
   });
 
   if (conversation) {
-    // Ensure userStates exist for both (migration for old conversations)
+    // Ensure userStates exist for both participants (migration)
     let updated = false;
     for (const uid of participants) {
       if (!conversation.userStates.some(s => s.userId.toString() === uid)) {
@@ -39,7 +37,6 @@ export const getOrCreateConversation = asyncHandler(async (req, res) => {
     }
     if (updated) await conversation.save();
   } else {
-    // 2️⃣ Create new conversation – handle duplicate key race condition
     try {
       conversation = await Conversation.create({
         participants,
@@ -52,14 +49,11 @@ export const getOrCreateConversation = asyncHandler(async (req, res) => {
         lastMessageTime: new Date(),
       });
     } catch (error) {
-      // If duplicate key error (E11000), fetch the existing conversation
       if (error.code === 11000) {
         conversation = await Conversation.findOne({
           participants: { $all: participants, $size: 2 },
         });
-        if (!conversation) {
-          throw new Error('Failed to create or retrieve conversation');
-        }
+        if (!conversation) throw new Error('Failed to create or retrieve conversation');
       } else {
         throw error;
       }
@@ -73,15 +67,12 @@ export const getOrCreateConversation = asyncHandler(async (req, res) => {
   res.json(populatedConversation);
 });
 
-// ✅ NEW: Fetch a single conversation by ID (used after page refresh)
+// ✅ ADD THIS MISSING FUNCTION
 export const getConversationById = asyncHandler(async (req, res) => {
   const conversation = await Conversation.findById(req.params.id)
     .populate('participants', 'name email avatar onlineStatus lastSeen')
     .populate('lastMessage');
-  
-  if (!conversation) {
-    return res.status(404).json({ message: 'Conversation not found' });
-  }
+  if (!conversation) return res.status(404).json({ message: 'Conversation not found' });
   res.json(conversation);
 });
 
@@ -110,7 +101,6 @@ export const getConversations = asyncHandler(async (req, res) => {
       return { ...conv.toObject(), unreadCount };
     })
   );
-
   res.json(conversationsWithUnread);
 });
 
