@@ -1,4 +1,3 @@
-// controllers/conversationController.js
 import Conversation from '../models/Conversation.js';
 import Message from '../models/Message.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -7,7 +6,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 export const getOrCreateConversation = asyncHandler(async (req, res) => {
   const { userId, receiverId } = req.body;
   const currentUserId = req.user._id.toString();
-  const targetUserId = (userId || receiverId).toString();
+  const targetUserId = (userId || receiverId)?.toString();
 
   if (!targetUserId) {
     return res.status(400).json({ message: 'User ID is required' });
@@ -16,39 +15,15 @@ export const getOrCreateConversation = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: 'Cannot chat with yourself' });
   }
 
-  // Sort participants to guarantee consistent order
   const participants = [currentUserId, targetUserId].sort();
 
-  // Try to find existing conversation (using sorted array)
+  // 1️⃣ Try to find existing conversation
   let conversation = await Conversation.findOne({
     participants: { $all: participants, $size: 2 },
   });
 
-  if (!conversation) {
-    try {
-      conversation = await Conversation.create({
-        participants,
-        userStates: participants.map(uid => ({
-          userId: uid,
-          pinned: false,
-          deleted: false,
-          lastReadAt: new Date(),
-        })),
-        lastMessageTime: new Date(),
-      });
-    } catch (error) {
-      // Duplicate key (E11000) – race condition, fetch existing conversation
-      if (error.code === 11000) {
-        conversation = await Conversation.findOne({
-          participants: { $all: participants, $size: 2 },
-        });
-        if (!conversation) throw new Error('Failed to create or retrieve conversation');
-      } else {
-        throw error;
-      }
-    }
-  } else {
-    // Ensure userStates exist for both participants (migration)
+  if (conversation) {
+    // Ensure userStates exist for both (migration for old conversations)
     let updated = false;
     for (const uid of participants) {
       if (!conversation.userStates.some(s => s.userId.toString() === uid)) {
@@ -62,6 +37,32 @@ export const getOrCreateConversation = asyncHandler(async (req, res) => {
       }
     }
     if (updated) await conversation.save();
+  } else {
+    // 2️⃣ Create new conversation – handle duplicate key race condition
+    try {
+      conversation = await Conversation.create({
+        participants,
+        userStates: participants.map(uid => ({
+          userId: uid,
+          pinned: false,
+          deleted: false,
+          lastReadAt: new Date(),
+        })),
+        lastMessageTime: new Date(),
+      });
+    } catch (error) {
+      // If duplicate key error (E11000), fetch the existing conversation
+      if (error.code === 11000) {
+        conversation = await Conversation.findOne({
+          participants: { $all: participants, $size: 2 },
+        });
+        if (!conversation) {
+          throw new Error('Failed to create or retrieve conversation');
+        }
+      } else {
+        throw error;
+      }
+    }
   }
 
   const populatedConversation = await Conversation.findById(conversation._id)
@@ -71,7 +72,7 @@ export const getOrCreateConversation = asyncHandler(async (req, res) => {
   res.json(populatedConversation);
 });
 
-// @desc    Get all conversations for current user (excluding soft-deleted ones)
+// @desc    Get all conversations for current user
 export const getConversations = asyncHandler(async (req, res) => {
   const conversations = await Conversation.find({
     participants: req.user._id,
@@ -96,19 +97,23 @@ export const getConversations = asyncHandler(async (req, res) => {
       return { ...conv.toObject(), unreadCount };
     })
   );
+
   res.json(conversationsWithUnread);
 });
 
-export const getConversationById = asyncHandler(async (req, res) => {
-  const conversation = await Conversation.findById(req.params.id)
-    .populate('participants', 'name email avatar onlineStatus lastSeen')
-    .populate('lastMessage');
+// @desc    Pin/unpin conversation
+export const togglePinConversation = asyncHandler(async (req, res) => {
+  const conversation = await Conversation.findById(req.params.id);
   if (!conversation) return res.status(404).json({ message: 'Conversation not found' });
-  res.json(conversation);
+  const userState = conversation.userStates.find(
+    (state) => state.userId.toString() === req.user._id.toString()
+  );
+  if (userState) userState.pinned = !userState.pinned;
+  await conversation.save();
+  res.json({ pinned: userState?.pinned });
 });
 
-
-// @desc    Soft delete conversation for current user (removes from list)
+// @desc    Soft delete conversation for current user
 export const deleteConversation = asyncHandler(async (req, res) => {
   const conversation = await Conversation.findById(req.params.id);
   if (!conversation) return res.status(404).json({ message: 'Conversation not found' });
@@ -117,35 +122,33 @@ export const deleteConversation = asyncHandler(async (req, res) => {
   );
   if (userState) userState.deleted = true;
   await conversation.save();
-  res.json({ message: 'Conversation removed from your list' });
+  res.json({ message: 'Conversation removed' });
 });
 
-// @desc    Hard delete entire chat (all messages for both users) – use with caution
+// @desc    Hard delete all messages (both sides)
 export const clearChat = asyncHandler(async (req, res) => {
   await Message.deleteMany({ conversationId: req.params.id });
   await Conversation.findByIdAndUpdate(req.params.id, {
     lastMessage: null,
     lastMessageText: '',
   });
-  res.json({ message: 'Chat cleared permanently for both users' });
+  res.json({ message: 'Chat cleared permanently' });
 });
 
-// @desc    Soft delete all messages for current user only (hide them)
+// @desc    Soft delete all messages for current user only
 export const clearChatForSelf = asyncHandler(async (req, res) => {
   const conversationId = req.params.id;
   const userId = req.user._id;
 
-  // Mark all messages in this conversation as deleted for this user
   await Message.updateMany(
     { conversationId },
     { $addToSet: { deletedFor: userId } }
   );
 
-  // Update user's lastReadAt (no need to alter global lastMessageText)
   await Conversation.updateOne(
     { _id: conversationId, 'userStates.userId': userId },
     { $set: { 'userStates.$.lastReadAt': new Date() } }
   );
 
-  res.json({ message: 'Chat cleared for you (messages hidden)' });
+  res.json({ message: 'Chat cleared for you' });
 });
