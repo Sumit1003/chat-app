@@ -1,8 +1,8 @@
-import React, { useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useRef, useEffect, memo } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import MessageBubble from './MessageBubble';
 
-const MessageList = ({ messages, currentUserId, onMessageDelete }) => {
+const MessageList = memo(({ messages, currentUserId, onMessageDelete }) => {
   const endRef = useRef(null);
 
   useEffect(() => {
@@ -19,7 +19,8 @@ const MessageList = ({ messages, currentUserId, onMessageDelete }) => {
 
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-2">
-      <AnimatePresence>
+      {/* initial={false} prevents unnecessary first animation on load */}
+      <AnimatePresence initial={false}>
         {messages.map((message) => (
           <MessageBubble
             key={message._id}
@@ -32,6 +33,8 @@ const MessageList = ({ messages, currentUserId, onMessageDelete }) => {
       <div ref={endRef} />
     </div>
   );
-};
+});
+
+MessageList.displayName = 'MessageList';
 
 export default MessageList;

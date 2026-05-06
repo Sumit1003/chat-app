@@ -22,11 +22,20 @@ export default defineConfig({
       output: {
         manualChunks: {
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui-vendor': ['framer-motion', 'react-icons', 'date-fns'],
-          'socket': ['socket.io-client'],
+          'motion-vendor': ['framer-motion'],
+          'ui-vendor': ['react-icons', 'date-fns'],
+          'socket-vendor': ['socket.io-client'],
         },
       },
     },
     chunkSizeWarningLimit: 600,
+    sourcemap: false,        // reduces bundle size
+    minify: 'terser',        // better minification
+    terserOptions: {
+      compress: {
+        drop_console: true,  // remove console.log in production
+        drop_debugger: true,
+      },
+    },
   },
 })
