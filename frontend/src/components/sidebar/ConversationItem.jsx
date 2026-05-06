@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
-import { FiTrash2, FiPin, FiMessageCircle } from 'react-icons/fi';
+import { FiTrash2, FiMapPin, FiMessageCircle } from 'react-icons/fi'; // Changed FiPin to FiMapPin
 
 const ConversationItem = React.memo(({ conversation, isSelected, onClick, onDelete, onlineUsers, currentUserId }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -84,7 +84,7 @@ const ConversationItem = React.memo(({ conversation, isSelected, onClick, onDele
             </h3>
             {isPinned && (
               <motion.div variants={pinIconVariants} animate="pinned" initial="unpinned">
-                <FiPin className="w-3.5 h-3.5 text-yellow-500 rotate-45 fill-yellow-500" />
+                <FiMapPin className="w-3.5 h-3.5 text-yellow-500 rotate-45 fill-yellow-500" />
               </motion.div>
             )}
           </div>
