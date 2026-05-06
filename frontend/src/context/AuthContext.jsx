@@ -22,7 +22,7 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUser = async () => {
     try {
-      const { data } = await api.get('/api/auth/me');
+      const { data } = await api.get('/auth/me');
       setUser(data);
     } catch (error) {
       localStorage.removeItem('token');
@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const { data } = await api.post('/api/auth/login', { email, password });
+      const { data } = await api.post('/auth/login', { email, password });
       localStorage.setItem('token', data.token);
       api.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
       setUser(data);
@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (name, email, password) => {
     try {
-      const { data } = await api.post('/api/auth/register', { name, email, password });
+      const { data } = await api.post('/auth/register', { name, email, password });
       localStorage.setItem('token', data.token);
       api.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
       setUser(data);

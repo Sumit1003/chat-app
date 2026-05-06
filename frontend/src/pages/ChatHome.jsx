@@ -21,7 +21,7 @@ const ChatHome = () => {
     }
     const savedConvId = localStorage.getItem('selectedConversationId');
     if (savedConvId) {
-      api.get(`/api/conversations/${savedConvId}`)
+      api.get(`/conversations/${savedConvId}`)
         .then(({ data }) => {
           setSelectedConversation(data);
         })

@@ -73,7 +73,7 @@ const ChatArea = ({ conversation, currentUser }) => {
   const fetchMessages = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get(`api/messages/${conversation._id}`);
+      const { data } = await api.get(`/messages/${conversation._id}`);
       setMessages(data.messages);
     } catch (error) {
       console.error('Failed to fetch messages', error);
@@ -94,7 +94,7 @@ const ChatArea = ({ conversation, currentUser }) => {
   const handleClearChat = async () => {
     if (!window.confirm('Are you sure you want to clear all messages? This action cannot be undone.')) return;
     try {
-      await api.delete(`/api/conversations/${conversation._id}/clear-for-me`);
+      await api.delete(`conversations/${conversation._id}/clear-for-me`);
       setMessages([]);
       toast.success('Chat cleared');
       setShowChatMenu(false);
@@ -107,7 +107,7 @@ const ChatArea = ({ conversation, currentUser }) => {
   const handleTogglePin = async () => {
     setPinning(true);
     try {
-      await api.put(`/api/conversations/${conversation._id}/pin`);
+      await api.put(`/conversations/${conversation._id}/pin`);
       const isPinned = conversation.userStates?.find(s => s.userId === currentUser._id)?.pinned;
       toast.success(isPinned ? 'Unpinned' : 'Pinned');
       setShowChatMenu(false);

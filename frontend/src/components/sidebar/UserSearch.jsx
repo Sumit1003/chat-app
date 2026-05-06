@@ -36,7 +36,7 @@ const UserSearch = ({ onConversationCreated, onCancel }) => {
   const startConversation = async (userId) => {
     setCreating(prev => ({ ...prev, [userId]: true }));
     try {
-      const { data } = await api.post('/api/conversations', { userId });
+      const { data } = await api.post('/conversations', { userId });
       onConversationCreated(data);
       toast.success('Conversation started');
     } catch (error) {

@@ -34,7 +34,7 @@ const Sidebar = ({ onSelectConversation }) => {
   const fetchAllUsers = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/api/users');
+      const { data } = await api.get('/users');
       setAllUsers(data);
     } catch (error) {
       console.error('Failed to fetch users', error);
@@ -50,7 +50,7 @@ const Sidebar = ({ onSelectConversation }) => {
 
   const handleStartConversation = async (selectedUser) => {
     try {
-      const { data } = await api.post('/api/conversations', { userId: selectedUser._id });
+      const { data } = await api.post('/conversations', { userId: selectedUser._id });
       onSelectConversation(data);
       if (isMobile) setIsMobileOpen(false);
     } catch (error) {
